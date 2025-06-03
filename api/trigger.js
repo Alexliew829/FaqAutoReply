@@ -1,6 +1,3 @@
-  # 生成支持 GET 请求返回成功信息的 trigger.js 文件
-
-trigger_js_with_get = """
 const { createClient } = require('@supabase/supabase-js');
 const fetch = require('node-fetch');
 
@@ -14,10 +11,15 @@ const PAGE_ID = '101411206173416';
 const MAKE_WEBHOOK_URL = 'https://hook.us2.make.com/thw3zhxlrqghf70fb5nyewyz1p05uljl';
 
 module.exports = async (req, res) => {
-  // ✅ 支援 GET 请求测试部署状态
-  if (req.method === 'GET') return res.status(200).send('✅ trigger.js 已部署成功');
+  // ✅ 浏览器访问 GET 测试部署状态
+  if (req.method === 'GET') {
+    return res.status(200).send('✅ trigger.js 已部署成功');
+  }
 
-  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+  // ❌ 拒绝非 POST 请求（如 PUT/DELETE）
+  if (req.method !== 'POST') {
+    return res.status(405).send('Method Not Allowed');
+  }
 
   const body = req.body;
 
@@ -36,7 +38,7 @@ module.exports = async (req, res) => {
         const postId = comment.post_id;
 
         // 判重：检查是否处理过
-        const { data: existing, error } = await supabase
+        const { data: existing } = await supabase
           .from('faq_handled_comments')
           .select('comment_id')
           .eq('comment_id', commentId)
@@ -48,10 +50,10 @@ module.exports = async (req, res) => {
         await fetch(MAKE_WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ comment_id: commentId, message, post_id: postId }),
+          body: JSON.stringify({ comment_id: commentId, message, post_id: postId })
         });
 
-        // 写入数据库
+        // 写入数据库防重复
         await supabase.from('faq_handled_comments').insert({ comment_id: commentId });
       }
     }
@@ -59,11 +61,3 @@ module.exports = async (req, res) => {
 
   res.status(200).send('OK');
 };
-"""
-
-# 写入文件
-updated_trigger_path = "/mnt/data/trigger_with_get_support.js"
-with open(updated_trigger_path, "w", encoding="utf-8") as f:
-    f.write(trigger_js_with_get)
-
-updated_trigger_path

@@ -1,0 +1,10 @@
+
+{
+  "name": "faq-auto-reply",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.5",
+    "node-fetch": "^2.6.7"
+  }
+}

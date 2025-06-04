@@ -8,7 +8,7 @@ const supabase = createClient(
 );
 
 const PAGE_ID = '101411206173416';
-const MAKE_WEBHOOK_URL = 'https://hook.us2.make.com/thw3zhxlrqghf70fb5nyewyz1p05uljl';
+const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL; // ✅ 改为从环境变量读取
 
 module.exports = async (req, res) => {
   // ✅ 浏览器访问 GET 测试部署状态

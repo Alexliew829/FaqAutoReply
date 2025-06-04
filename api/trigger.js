@@ -6,7 +6,7 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
-const PAGE_ID = '101411206173416';
+const PAGE_ID = '383560435152696';
 const WEBHOOK_URL = process.env.WEBHOOK_URL;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 

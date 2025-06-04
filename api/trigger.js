@@ -1,22 +1,30 @@
 const { createClient } = require('@supabase/supabase-js');
 const fetch = require('node-fetch');
 
-// 初始化 Supabase（使用 faq_handled_comments 表）
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
 
 const PAGE_ID = '101411206173416';
-const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL; // ✅ 改为从环境变量读取
+const WEBHOOK_URL = process.env.WEBHOOK_URL;
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
 module.exports = async (req, res) => {
-  // ✅ 浏览器访问 GET 测试部署状态
+  // ✅ Facebook Webhook 验证 (GET)
   if (req.method === 'GET') {
-    return res.status(200).send('✅ trigger.js 已部署成功');
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+      return res.status(200).send(challenge);
+    } else {
+      return res.status(403).send('验证失败');
+    }
   }
 
-  // ❌ 拒绝非 POST 请求（如 PUT/DELETE）
+  // ✅ 拒绝非 POST 请求
   if (req.method !== 'POST') {
     return res.status(405).send('Method Not Allowed');
   }
@@ -29,7 +37,6 @@ module.exports = async (req, res) => {
       for (const change of changes) {
         const comment = change.value;
 
-        // 忽略非评论或非访客留言
         if (!comment || comment.item !== 'comment' || comment.verb !== 'add') continue;
         if (comment.from?.id === PAGE_ID) continue;
 
@@ -37,23 +44,20 @@ module.exports = async (req, res) => {
         const message = comment.message || '';
         const postId = comment.post_id;
 
-        // 判重：检查是否处理过
         const { data: existing } = await supabase
           .from('faq_handled_comments')
           .select('comment_id')
           .eq('comment_id', commentId)
           .maybeSingle();
 
-        if (existing) continue; // 已处理，跳过
+        if (existing) continue;
 
-        // 发送到 Make Webhook
-        await fetch(MAKE_WEBHOOK_URL, {
+        await fetch(WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ comment_id: commentId, message, post_id: postId })
         });
 
-        // 写入数据库防重复
         await supabase.from('faq_handled_comments').insert({ comment_id: commentId });
       }
     }
